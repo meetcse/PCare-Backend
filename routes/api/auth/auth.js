@@ -414,8 +414,8 @@ router.post("/login", (req, res) => {
                     }
                   );
                 })
-                .catch((error) => {
-                  console.log(`Error in finding receptionist: ${error}`);
+                .catch((err) => {
+                  console.log(`Error in finding receptionist: ${err}`);
                   return res.json({
                     error: "Error with database",
                   });
