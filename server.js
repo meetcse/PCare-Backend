@@ -7,6 +7,7 @@ const app = express();
 
 //bring all routes
 const auth = require("./routes/api/auth/auth");
+const hospital = require("./routes/api/hospital/hospital");
 
 //middleware for body parser
 app.use(bodyparser.urlencoded({ extended: false })); //for encoding url and parsing it into json
@@ -28,6 +29,7 @@ app.get("/", (req, res) => {
 
 //actual routes
 app.use("/api/auth", auth);
+app.use("/api/hospital", hospital);
 
 const port = process.env.port || 3000;
 

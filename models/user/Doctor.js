@@ -26,10 +26,19 @@ const DoctorSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "hospital",
   },
-  working_days: [String],
-  working_hours: [String],
+  working_days: [
+    {
+      type: String,
+    },
+  ],
+  working_hours: [
+    {
+      type: String,
+    },
+  ],
   approx_appoint_per_slot: {
     type: Schema.Types.Number,
+    required: true,
   },
   treatment_id: [
     {
@@ -38,8 +47,7 @@ const DoctorSchema = new Schema({
     },
   ],
   receptionist_id: {
-    type: Schema.Types.ObjectId,
-    ref: "myReceptionist",
+    type: String,
   },
 });
 
