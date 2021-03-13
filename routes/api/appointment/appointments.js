@@ -85,7 +85,35 @@ router.get(
   "/patient",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
-    //
+    if (req.user.usertype.toString().toLowerCase() != "patient") {
+      return res.status(401).json({ error: "Un Authorized" });
+    }
+
+    Patient.findById(req.user.patient_id)
+      .then((patient) => {
+        let appointments = [];
+        var promise = new Promise((resolve, reject) => {
+          patient.appointment_id.forEach((element, index, array) => {
+            Appointment.findById(element.appointment)
+              .then((appointment) => {
+                appointments.push(appointment);
+                // console.log(appointments);
+                if (index === array.length - 1) resolve();
+              })
+              .catch((error) => {
+                console.log("Error in finding appointment : " + error);
+                return res.status(400).json({ error: "Error" });
+              });
+          });
+        });
+        promise.then(() => {
+          return res.json(appointments);
+        });
+      })
+      .catch((error) => {
+        console.log("Error in finding patient : " + error);
+        return res.status(400).json({ error: "Error" });
+      });
   }
 );
 
