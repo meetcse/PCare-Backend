@@ -10,8 +10,14 @@ const AppointmentSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "myDoctor",
   },
-  appointment_time: [String],
-  appointment_date: [Date],
+  appointment_time: {
+    type: String,
+    required: true,
+  },
+  appointment_date: {
+    type: Date,
+    required: true,
+  },
   full_treatment_id: {
     type: Schema.Types.ObjectId,
     ref: "fullTreatment",
@@ -24,6 +30,10 @@ const AppointmentSchema = new Schema({
   createddate: {
     type: Date,
     default: Date.now,
+  },
+  status: {
+    type: String,
+    default: "Pending",
   },
 });
 

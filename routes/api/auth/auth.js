@@ -316,7 +316,7 @@ router.post("/login", (req, res) => {
                     firstname: person.firstname,
                     mobilenumber: person.mobilenumber,
                     usertype: person.usertype,
-                    patient_id: patient,
+                    patient_id: patient.id,
                   };
                   person.password = "";
 
@@ -353,7 +353,7 @@ router.post("/login", (req, res) => {
                     firstname: person.firstname,
                     mobilenumber: person.mobilenumber,
                     usertype: person.usertype,
-                    doctor_id: doctor,
+                    doctor_id: doctor.id,
                   };
                   person.password = "";
 
@@ -392,7 +392,7 @@ router.post("/login", (req, res) => {
                     firstname: person.firstname,
                     mobilenumber: person.mobilenumber,
                     usertype: person.usertype,
-                    receptionist_id: receptionist,
+                    receptionist_id: receptionist.id,
                   };
                   person.password = "";
 

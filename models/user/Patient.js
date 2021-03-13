@@ -9,8 +9,10 @@ const PatientSchema = new Schema({
 
   appointment_id: [
     {
-      type: Schema.Types.ObjectId,
-      ref: "singleAppointment",
+      appointment: {
+        type: Schema.Types.ObjectId,
+        ref: "singleAppointment",
+      },
     },
   ],
   ongoing_treatment_id: [
