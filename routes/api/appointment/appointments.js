@@ -117,6 +117,86 @@ router.get(
   }
 );
 
+//@type     GET
+//@route    /api/appointment/today
+//@desc     route for getting all appointments for today for doctor
+//@access   PRIVATE
+router.get(
+  "/today",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    if (req.user.usertype.toString().toLowerCase() != "doctor") {
+      return res.status(401).json({ error: "Un Authorized" });
+    }
+
+    const date = moment().format("YYYY-MM-DD");
+
+    Appointment.find({ doctor_id: req.user.doctor_id, appointment_date: date })
+      .sort("-appointment_date")
+      .exec((error, appointments) => {
+        if (error) {
+          console.log("ERROR IN Finding appointment : " + error);
+          return res.status(400).json({ error: "Error in database" });
+        }
+
+        return res.json(appointments);
+      });
+  }
+);
+
+//@type     GET
+//@route    /api/appointment/upcoming
+//@desc     route for getting all appointments for future i.e from tomorrow for doctor
+//@access   PRIVATE
+router.get(
+  "/upcoming",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    if (req.user.usertype.toString().toLowerCase() != "doctor") {
+      return res.status(401).json({ error: "Un Authorized" });
+    }
+
+    const date = moment().format("YYYY-MM-DD");
+
+    Appointment.find({
+      doctor_id: req.user.doctor_id,
+      appointment_date: { $gt: date },
+    })
+      .sort("-appointment_date")
+      .exec((error, appointments) => {
+        if (error) {
+          console.log("ERROR IN Finding appointment : " + error);
+          return res.status(400).json({ error: "Error in database" });
+        }
+
+        return res.json(appointments);
+      });
+  }
+);
+
+//@type     GET
+//@route    /api/appointment/doctor/all
+//@desc     route for getting all appointments for doctor
+//@access   PRIVATE
+router.get(
+  "/doctor/all",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    if (req.user.usertype.toString().toLowerCase() != "doctor") {
+      return res.status(401).json({ error: "Un Authorized" });
+    }
+    Appointment.find({ doctor_id: req.user.doctor_id })
+      .sort("-appointment_date")
+      .then((appointments) => {
+        return res.json(appointments);
+      })
+      .catch((error) => {
+        console.log("ERROR IN Finding appointment : " + error);
+        return res.status(400).json({ error: "Error in database" });
+      });
+  }
+);
+
 //methods
 
 function getDate(dateString) {

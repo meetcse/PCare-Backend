@@ -11,6 +11,7 @@ const auth = require("./routes/api/auth/auth");
 const hospital = require("./routes/api/hospital/hospital");
 const doctor = require("./routes/api/doctor/doctor");
 const appointment = require("./routes/api/appointment/appointments");
+const treatment = require("./routes/api/treatments/treatments");
 
 //middleware for body parser
 app.use(bodyparser.urlencoded({ extended: false })); //for encoding url and parsing it into json
@@ -49,6 +50,9 @@ app.use("/api/doctor", doctor);
 
 //appointment
 app.use("/api/appointment", appointment);
+
+//treatment
+app.use("/api/treatment", treatment);
 
 const port = process.env.port || 3000;
 
