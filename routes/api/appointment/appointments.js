@@ -162,7 +162,12 @@ router.get(
       doctor_id: req.user.doctor_id,
       appointment_date: { $gt: date },
     })
-      .populate("patient_id")
+      .populate({
+        path: "patient_id",
+        populate: {
+          path: "user",
+        },
+      })
       .populate({
         path: "doctor_id",
         populate: {
