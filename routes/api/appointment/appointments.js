@@ -162,8 +162,15 @@ router.get(
       doctor_id: req.user.doctor_id,
       appointment_date: { $gt: date },
     })
+      .populate("patient_id")
+      .populate({
+        path: "doctor_id",
+        populate: {
+          path: "user",
+        },
+      })
+      // .populate("doctor_id")
       .sort("-appointment_date")
-      .populate("patient_id", "doctor_id")
       .exec((error, appointments) => {
         if (error) {
           console.log("ERROR IN Finding appointment : " + error);
