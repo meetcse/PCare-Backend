@@ -5,6 +5,7 @@ const SingleTreatment = new Schema({
   single_appointment_id: {
     type: Schema.Types.ObjectId,
     ref: "singleAppointment",
+    required: true,
   },
   prescription: {
     type: String,
