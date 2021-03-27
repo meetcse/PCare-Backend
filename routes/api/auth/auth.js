@@ -124,14 +124,14 @@ router.post("/register", (req, res) => {
                 } else if (userType == "doctor") {
                   Hospital.findById(req.body.hospital_id)
                     .then((hospital) => {
-                      if (req.body.receptionist_id != null) {
+                      if (req.body.receptionist_id) {
                         var newDoctor = new Doctor({
                           user: person.id,
                           mci_id: req.body.mci_id,
                           specialist: req.body.specialist,
                           specialist_in: req.body.specialist_in,
                           doctor_type: req.body.doctor_type,
-                          hospital_id: hospital.hospital_id,
+                          hospital_id: hospital.id,
                           approx_appoint_per_slot:
                             req.body.approx_appoint_per_slot,
                           receptionist_id: req.body.receptionist_id,
@@ -143,7 +143,7 @@ router.post("/register", (req, res) => {
                           specialist: req.body.specialist,
                           specialist_in: req.body.specialist_in,
                           doctor_type: req.body.doctor_type,
-                          hospital_id: hospital.hospital_id,
+                          hospital_id: hospital.id,
                           approx_appoint_per_slot:
                             req.body.approx_appoint_per_slot,
                         });

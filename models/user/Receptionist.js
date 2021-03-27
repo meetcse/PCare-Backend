@@ -12,7 +12,8 @@ const ReceptionistSchema = new Schema({
   },
   doctor_id: [
     {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: "myDoctor",
     },
   ],
 });

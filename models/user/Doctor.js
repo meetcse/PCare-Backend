@@ -47,7 +47,8 @@ const DoctorSchema = new Schema({
     },
   ],
   receptionist_id: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: "myReceptionist",
   },
 });
 
