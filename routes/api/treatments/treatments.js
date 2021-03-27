@@ -76,20 +76,21 @@ router.post(
             patient.appointment_id.forEach((appointmentIds, index, array) => {
               Appointment.findById(appointmentIds)
                 .then((appointment) => {
-                  SingleTreatment.findById(appointment.single_treatment_id)
-                    .then((newSingleTreatment) => {
-                      singleTreatments.push(newSingleTreatment);
-                      if (index === array.length - 1) resolve();
-                    })
-                    .catch((error) => {
-                      console.log(
-                        "Error in finding Single treatment : " +
-                          error.toString()
-                      );
-                      return res
-                        .status(401)
-                        .json({ error: "Error in finding single treatment" });
-                    });
+                  if (appointment.single_treatment_id)
+                    SingleTreatment.findById(appointment.single_treatment_id)
+                      .then((newSingleTreatment) => {
+                        singleTreatments.push(newSingleTreatment);
+                        if (index === array.length - 1) resolve();
+                      })
+                      .catch((error) => {
+                        console.log(
+                          "Error in finding Single treatment : " +
+                            error.toString()
+                        );
+                        return res
+                          .status(401)
+                          .json({ error: "Error in finding single treatment" });
+                      });
                 })
                 .catch((error) => {
                   console.log(

@@ -163,12 +163,7 @@ router.get(
       appointment_date: { $gt: date },
     })
       .sort("-appointment_date")
-      .populate(
-        "patient_id",
-        "doctor_id",
-        "full_treatment_id",
-        "single_treatment_id"
-      )
+      .populate("patient_id", "doctor_id")
       .exec((error, appointments) => {
         if (error) {
           console.log("ERROR IN Finding appointment : " + error);
