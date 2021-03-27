@@ -57,6 +57,18 @@ router.post(
               { $set: { appointment_id: patient.appointment_id } },
               { new: true }
             )
+              .populate({
+                path: "patient_id",
+                populate: {
+                  path: "user",
+                },
+              })
+              .populate({
+                path: "doctor_id",
+                populate: {
+                  path: "user",
+                },
+              })
               .then((patient) => {
                 return res.json(appointment);
               })
@@ -95,6 +107,18 @@ router.get(
         var promise = new Promise((resolve, reject) => {
           patient.appointment_id.forEach((element, index, array) => {
             Appointment.findById(element.appointment)
+              .populate({
+                path: "patient_id",
+                populate: {
+                  path: "user",
+                },
+              })
+              .populate({
+                path: "doctor_id",
+                populate: {
+                  path: "user",
+                },
+              })
               .then((appointment) => {
                 appointments.push(appointment);
                 // console.log(appointments);
@@ -132,6 +156,18 @@ router.get(
     const date = moment().format("YYYY-MM-DD");
 
     Appointment.find({ doctor_id: req.user.doctor_id, appointment_date: date })
+      .populate({
+        path: "patient_id",
+        populate: {
+          path: "user",
+        },
+      })
+      .populate({
+        path: "doctor_id",
+        populate: {
+          path: "user",
+        },
+      })
       .sort("-appointment_date")
       .exec((error, appointments) => {
         if (error) {
@@ -174,7 +210,6 @@ router.get(
           path: "user",
         },
       })
-      // .populate("doctor_id")
       .sort("-appointment_date")
       .exec((error, appointments) => {
         if (error) {
@@ -199,6 +234,18 @@ router.get(
       return res.status(401).json({ error: "Un Authorized" });
     }
     Appointment.find({ doctor_id: req.user.doctor_id })
+      .populate({
+        path: "patient_id",
+        populate: {
+          path: "user",
+        },
+      })
+      .populate({
+        path: "doctor_id",
+        populate: {
+          path: "user",
+        },
+      })
       .sort("-appointment_date")
       .then((appointments) => {
         return res.json(appointments);
