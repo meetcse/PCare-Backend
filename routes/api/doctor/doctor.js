@@ -75,23 +75,35 @@ router.post(
 
     Doctor.findById(req.user.doctor_id)
       .then((doctor) => {
-        doctor.receptionist_id = req.body.receptionist_id;
         Receptionist.findById(req.body.receptionist_id)
           .then((reception) => {
-            if (reception.id == doctor.receptionist_id) {
+            if (doctor.receptionist_id == reception.id) {
               return res
                 .status(400)
                 .json({ error: "Receptionist already added" });
             }
+            doctor.receptionist_id = req.body.receptionist_id;
+
             Doctor.findByIdAndUpdate(
               req.user.doctor_id,
               {
-                receptionist_id: doctor.receptionist_id,
+                $set: {
+                  receptionist_id: doctor.receptionist_id,
+                },
               },
               { new: true }
             )
               .then((newDoctor) => {
-                Receptionist.findByIdAndUpdate(req.body.receptionist_id)
+                reception.doctor_id.push(req.user.doctor_id);
+                Receptionist.findByIdAndUpdate(
+                  req.body.receptionist_id,
+                  {
+                    $set: {
+                      doctor_id: reception.doctor_id,
+                    },
+                  },
+                  { new: true }
+                )
                   .then((receptionist) => {
                     return res.json({
                       success: "Successfully added receptionist",

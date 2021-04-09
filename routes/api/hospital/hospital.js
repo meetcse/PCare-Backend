@@ -45,7 +45,7 @@ router.post("/register", (req, res) => {
 //@route    /api/hospital/
 //@desc     route for getting list of hospitals
 //@access   PUBLIC
-router.get("/", async (req, res) => {
+router.post("/", async (req, res) => {
   if (req.body.hospital_name == null) {
     return res.json({
       error: "Missing fields",
