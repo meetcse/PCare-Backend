@@ -129,13 +129,58 @@ router.post(
       return res.status(401).json({ error: "Un Authorized" });
     }
     const full_treatment_id = req.body.full_treatment_id;
-    if (!appointment_id) {
+    if (!full_treatment_id) {
       return res.status(400).json({ error: "Missing fields" });
     }
 
     FullTreatment.findById(full_treatment_id)
+      .sort("-appointment_date")
+      .populate({
+        path: "treatments",
+        populate: {
+          path: "single_appointment_id",
+        },
+      })
+      .populate({
+        path: "treatments",
+        populate: {
+          path: "single_treatment_id",
+        },
+      })
+      .populate({
+        path: "patient_id",
+        populate: {
+          path: "user",
+        },
+      })
+      .populate({
+        path: "doctor_id",
+        populate: {
+          path: "hospital_id",
+        },
+      })
       .then((fullTreatment) => {
-        return res.json(fullTreatment);
+        if (
+          fullTreatment != null &&
+          fullTreatment != undefined &&
+          fullTreatment
+        ) {
+          if (req.user.usertype.toString().toLowerCase() == "doctor") {
+            if (fullTreatment.doctor_id.id == req.user.doctor_id) {
+              return res.json(fullTreatment);
+            } else {
+              return res.status(500).json({ error: "Un Authorised Doctor" });
+            }
+          } else {
+            if (fullTreatment.patient_id.id == req.user.patient_id) {
+              return res.json(fullTreatment);
+            } else {
+              return res.status(500).json({ error: "Un Authorised Patient" });
+            }
+          }
+        } else {
+          return res.json({ success: "No treatments found" });
+        }
       })
       .catch((error) => {
         console.log("Error in finding full treatment : " + error.toString());
@@ -296,11 +341,9 @@ router.post(
                                         "Error in finding patient : " +
                                           error.toString()
                                       );
-                                      return res
-                                        .status(401)
-                                        .json({
-                                          error: "Error in updating patient",
-                                        });
+                                      return res.status(401).json({
+                                        error: "Error in updating patient",
+                                      });
                                     });
                                 } else if (
                                   status.toString().toLowerCase() == "ongoing"
@@ -343,11 +386,9 @@ router.post(
                                         "Error in finding patient : " +
                                           error.toString()
                                       );
-                                      return res
-                                        .status(401)
-                                        .json({
-                                          error: "Error in updating patient",
-                                        });
+                                      return res.status(401).json({
+                                        error: "Error in updating patient",
+                                      });
                                     });
                                 }
                               })
@@ -511,11 +552,9 @@ router.post(
                                         "Error in finding patient : " +
                                           error.toString()
                                       );
-                                      return res
-                                        .status(401)
-                                        .json({
-                                          error: "Error in updating patient",
-                                        });
+                                      return res.status(401).json({
+                                        error: "Error in updating patient",
+                                      });
                                     });
                                 } else if (
                                   status.toString().toLowerCase() == "ongoing"
@@ -558,11 +597,9 @@ router.post(
                                         "Error in finding patient : " +
                                           error.toString()
                                       );
-                                      return res
-                                        .status(401)
-                                        .json({
-                                          error: "Error in updating patient",
-                                        });
+                                      return res.status(401).json({
+                                        error: "Error in updating patient",
+                                      });
                                     });
                                 }
                               })
