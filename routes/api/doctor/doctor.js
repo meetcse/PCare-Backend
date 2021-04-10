@@ -8,6 +8,8 @@ const key = require("../../../server/myurl");
 const Receptionist = mongoose.model("myReceptionist");
 const Person = mongoose.model("myPerson");
 const Doctor = mongoose.model("myDoctor");
+const Patient = mongoose.model("myPatient");
+const FullTreatment = require("../../../models/treatment/FullTreatment");
 
 //@type     Get
 //@route    /api/doctor/
@@ -171,7 +173,7 @@ router.post(
       ])
       .then((person) => {
         // console.log("Person : " + person.toString());
-        if (!person || person.length==0) {
+        if (!person || person.length == 0) {
           return res.status(401).json({ error: "No user found" });
         }
         Doctor.findById(req.user.doctor_id)
@@ -238,79 +240,132 @@ router.post("/search/doctor", (req, res) => {
     });
   }
 
-
-   //case insensitive search
-    Person.find({
-      usertype:
+  //case insensitive search
+  Person.find({
+    usertype:
       // "receptionist",
       { $regex: "doctor", $options: "i" },
-  }).or([
-    {
-      firstname: { $regex: req.body.doctor_name, $options: "i" },
-    },
-    { lastname: { $regex: req.body.doctor_name, $options: "i" } },
-  ]).then((person) => {
-   
-    if (!person || person == [] || person.length ==0) {
-      return res.status(401).json({ error: "No user found" });
-    }
+  })
+    .or([
+      {
+        firstname: { $regex: req.body.doctor_name, $options: "i" },
+      },
+      { lastname: { $regex: req.body.doctor_name, $options: "i" } },
+    ])
+    .then((person) => {
+      if (!person || person == [] || person.length == 0) {
+        return res.status(401).json({ error: "No user found" });
+      }
 
- 
-    let doctors = [];
-    var promise = new Promise((resolve, reject) => {
-      person.forEach((singlePerson, index, array) => {
-        Doctor.findOne({
-          
-          user: singlePerson.id,
-        })
-        .populate("user")
-        // .populate({
-          //   path: "[doctor_id]",
-          //   // populate: {
+      let doctors = [];
+      var promise = new Promise((resolve, reject) => {
+        person.forEach((singlePerson, index, array) => {
+          Doctor.findOne({
+            user: singlePerson.id,
+          })
+            .populate("user")
+            // .populate({
+            //   path: "[doctor_id]",
+            //   // populate: {
             //   //   path: "user",
             //   // },
             // })
             // .populate("doctor_id")
             .populate("hospital_id")
-          .then((doctor) => {
-
-            
-        
-            if(doctor) {
-
-              doctors.push(doctor);
+            .then((doctor) => {
+              if (doctor) {
+                doctors.push(doctor);
+                if (index === array.length - 1) resolve();
+              }
               if (index === array.length - 1) resolve();
-            }
-            if (index === array.length - 1) resolve();
-          })
-          .catch((error) => {
-            console.log(
-              "Error in searching doctors : " + error.toString()
-              );
-            return res
-            .status(401)
-              .json({ error: "Error in searching" });
-          });
+            })
+            .catch((error) => {
+              console.log("Error in searching doctors : " + error.toString());
+              return res.status(401).json({ error: "Error in searching" });
+            });
+        });
       });
 
-    });
-
-    promise.then(() => {
-      console.log("CAME HERE");
-      if(doctors) {
-
-        return res.json(doctors);
-      } else {
-       
+      promise.then(() => {
+        console.log("CAME HERE");
+        if (doctors) {
+          return res.json(doctors);
+        } else {
           return res.status(401).json({ error: "No user found" });
-        
-      }
+        }
+      });
+    })
+    .catch((error) => {
+      console.log("Error in searching doctor : " + error);
+      return res.status(401).json({ error: "Error in searching doctor" });
     });
-  }).catch((error) => {
-    console.log("Error in searching doctor : "+error);
-    return res.status(401).json({error: "Error in searching doctor"})
-  });
-})
+});
 
+//@type     GET
+//@route    /api/doctor/mypatients
+//@desc     route for getting current doctors patients
+//@access   PUBLIC
+router.get(
+  "/mypatients",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    if (req.user.usertype.toString().toLowerCase() != "doctor") {
+      return res.status(401).json({ error: "Un Authorized" });
+    }
+    Doctor.findById(req.user.doctor_id)
+      .then((doctor) => {
+        let patients = [];
+        var promise = new Promise((resolve, reject) => {
+          if (doctor.treatment_id != null && doctor.treatment_id.length > 0) {
+            doctor.treatment_id.forEach((ids, index, array) => {
+              FullTreatment.findById(ids)
+                .then((fullTreatment) => {
+                  Patient.findById(fullTreatment.patient_id)
+                    .populate("user", "-password")
+                    .populate({
+                      path: "appointment_id",
+                      populate: {
+                        path: "appointment",
+                      },
+                    })
+                    .then((patient) => {
+                      if (patient != null) {
+                        patients.push(patient);
+                        if (index === array.length - 1) resolve();
+                      }
+                      if (index === array.length - 1) resolve();
+                    })
+                    .catch((error) => {
+                      console.log("Error in finding patient : " + error);
+                      return res
+                        .status(401)
+                        .json({ error: "Error in finding patient" });
+                    });
+                })
+                .catch((error) => {
+                  console.log("ERROR : " + error);
+                  return res
+                    .status(401)
+                    .json({ error: "Error in finding full treatment" });
+                });
+            });
+          } else {
+            return res.json({ error: "No Patients found" });
+          }
+        });
+
+        promise.then(() => {
+          if (patients.length == 0) {
+            return res.json({ error: "No Patients found" });
+          }
+          return res.json(patients);
+        });
+      })
+      .catch((error) => {
+        console.log("ERROR IN FINDING DOCTOR : " + error);
+        return res.status(401).json({ error: "Error in searching doctor" });
+      });
+  }
+);
 
 module.exports = router;
