@@ -122,6 +122,7 @@ router.get(
         var promise = new Promise((resolve, reject) => {
           patient.appointment_id.forEach((element, index, array) => {
             Appointment.findById(element.appointment)
+   
               .populate({
                 path: "patient_id",
                 populate: {
@@ -134,7 +135,7 @@ router.get(
                   path: "user",
                 },
               })
-              .sort("-appointment_date")
+             
               .then((appointment) => {
                 appointments.push(appointment);
                 // console.log(appointments);
@@ -147,6 +148,7 @@ router.get(
           });
         });
         promise.then(() => {
+          appointments.sort((a,b)=>b.appointment_date-a.appointment_date);
           return res.json(appointments);
         });
       })
