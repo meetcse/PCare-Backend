@@ -25,6 +25,8 @@ router.get(
 
     Doctor.find()
       .populate("user", "-password")
+      .populate("hospital_id")
+      .populate("receptionist_id")
       .then((doctor) => {
         return res.json(doctor);
       })
