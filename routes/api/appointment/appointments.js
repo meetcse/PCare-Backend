@@ -134,6 +134,7 @@ router.get(
                   path: "user",
                 },
               })
+              .sort("-appointment_date")
               .then((appointment) => {
                 appointments.push(appointment);
                 // console.log(appointments);
