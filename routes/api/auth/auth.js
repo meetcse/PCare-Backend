@@ -250,19 +250,12 @@ router.post("/register", (req, res) => {
                                   } else {
                                     person.password = "";
 
-                                    Receptionist.findById(reception.id)
-                                    .populate("user")
-                                    . then((receptionRes) => {
-                                      return res.json({
-                                        success: true,
-                                        token: token,
-                                        user: person,
-                                        receptionist_details: receptionRes,
-                                      });
-                                    })  .catch((error) => {
-                                      console.log("Error in finding receptionist : "+error);
-                                      return res.status(401).json({error: "Error in finding receptionist"})
-                                    })
+                                    return res.json({
+                                      success: true,
+                                      token: token,
+                                      user: person,
+                                      receptionist_details: reception,
+                                    });
                                  
                                   }
                                 }
@@ -432,6 +425,7 @@ router.post("/login", (req, res) => {
               person.usertype.toString().toLowerCase() == "receptionist"
             ) {
               Receptionist.findOne({ user: person.id })
+              // .populate("user")
                 .then((receptionist) => {
                   //use payload and create token for user
                   const payload = {
@@ -452,20 +446,21 @@ router.post("/login", (req, res) => {
                         throw err;
                       } else {
                         person.password = "";
+                        return res.json({
+                          success: true,
+                          token: token,
+                          user: person,
+                          receptionist_details: receptionist,
+                        });
 
-                        Receptionist.findById(reception.id)
-                        .populate("user")
-                        . then((receptionRes) => {
-                          return res.json({
-                            success: true,
-                            token: token,
-                            user: person,
-                            receptionist_details: receptionRes,
-                          });
-                        })  .catch((error) => {
-                          console.log("Error in finding receptionist : "+error);
-                          return res.status(401).json({error: "Error in finding receptionist"})
-                        })
+                        // Receptionist.findById(reception.id)
+                        // .populate("user")
+                        // . then((receptionRes) => {
+                       
+                        // })  .catch((error) => {
+                        //   console.log("Error in finding receptionist : "+error);
+                        //   return res.status(401).json({error: "Error in finding receptionist"})
+                        // })
                       }
                     }
                   );
