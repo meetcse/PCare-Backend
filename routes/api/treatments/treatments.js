@@ -159,6 +159,12 @@ router.post(
           path: "hospital_id",
         },
       })
+      .populate({
+        path: "doctor_id",
+        populate: {
+          path: "user",
+        },
+      })
       .then((fullTreatment) => {
         if (
           fullTreatment != null &&
