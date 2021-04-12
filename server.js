@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyparser = require("body-parser");
 const passport = require("passport");
+var cors = require('cors')
 
 const mongoose = require("mongoose");
 
@@ -32,6 +33,8 @@ mongoose.set("useFindAndModify", false);
 
 //PASSPORT MIDDLEWARE
 app.use(passport.initialize());
+
+app.use(cors())
 
 //Config for jwt strategy
 require("./strategies/jsonwtStrategies")(passport);
