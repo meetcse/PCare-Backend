@@ -139,6 +139,9 @@ router.post(
         path: "treatments",
         populate: {
           path: "single_appointment_id",
+          populate: {
+            path: "patient_id doctor_id",
+          }
         },
       })
       .populate({
@@ -147,18 +150,7 @@ router.post(
           path: "single_treatment_id",
         },
       })
-      .populate({
-        path: "treatments",
-        populate: {
-          path: "patient_id",
-        },
-      })
-      .populate({
-        path: "treatments",
-        populate: {
-          path: "doctor_id",
-        },
-      })
+  
       .populate({
         path: "patient_id",
         populate: {
