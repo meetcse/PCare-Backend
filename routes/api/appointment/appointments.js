@@ -135,6 +135,19 @@ router.get(
                   path: "user",
                 },
               })
+              .populate({
+                path: "doctor_id",
+                populate: {
+                  path: "hospital_id",
+                },
+              })
+              .populate({
+                path: "doctor_id",
+                populate: {
+                  path: "receptionist_id",
+                },
+              })
+             
              
               .then((appointment) => {
                 appointments.push(appointment);
