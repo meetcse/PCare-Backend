@@ -141,6 +141,9 @@ router.post(
           path: "single_appointment_id",
           populate: {
             path: "patient_id doctor_id",
+            populate: {
+              path: "user"
+            }
           }
         },
       })
