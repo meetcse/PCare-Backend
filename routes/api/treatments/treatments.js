@@ -142,7 +142,7 @@ router.post(
           populate: {
             path: "patient_id doctor_id",
             populate: {
-              path: "user"
+              path: "user hospital_id"
             }
           }
         },
