@@ -87,6 +87,8 @@ router.post("/register", (req, res) => {
                   });
                   newPatient
                     .save()
+                    
+                    
                     .then((patient) => {
                       const payload = {
                         id: person.id,
@@ -105,12 +107,21 @@ router.post("/register", (req, res) => {
                             throw err;
                           } else {
                             person.password = "";
-                            return res.json({
-                              success: true,
-                              token: token,
-                              user: person,
-                              patient_details: patient,
-                            });
+                            Patient.findById(patient.id)
+                            .populate("user")
+                            .then((patientRes) => {
+                              return res.json({
+                                success: true,
+                                token: token,
+                                user: person,
+                                patient_details: patientRes,
+                              });
+                            })
+                            .catch((error) => {
+                              console.log("Error in finding patient : "+error);
+                              return res.status(401).json({error: "Error in finding patient"})
+                            })
+                           
                           }
                         }
                       );
@@ -175,13 +186,21 @@ router.post("/register", (req, res) => {
                               if (err) {
                                 throw err;
                               } else {
-                                person.password = "";
-                                return res.json({
-                                  success: true,
-                                  token: token,
-                                  user: person,
-                                  doctor_details: doctor,
-                                });
+                                Doctor.findById(doctor.id)
+                                .populate("user hospital_id")
+                                .then((doctorRes) => {
+                                  return res.json({
+                                    success: true,
+                                    token: token,
+                                    user: person,
+                                    doctor_details: doctorRes,
+                                  });
+                                })
+                                .catch((error) => {
+                                  console.log("Error in finding doctor : "+error);
+                                  return res.status(401).json({error: "Error in finding doctor"})
+                                })
+        
                               }
                             }
                           );
@@ -230,12 +249,21 @@ router.post("/register", (req, res) => {
                                     throw err;
                                   } else {
                                     person.password = "";
-                                    return res.json({
-                                      success: true,
-                                      token: token,
-                                      user: person,
-                                      receptionist_details: reception,
-                                    });
+
+                                    Receptionist.findById(reception.id)
+                                    .populate("user")
+                                    . then((receptionRes) => {
+                                      return res.json({
+                                        success: true,
+                                        token: token,
+                                        user: person,
+                                        receptionist_details: receptionRes,
+                                      });
+                                    })  .catch((error) => {
+                                      console.log("Error in finding receptionist : "+error);
+                                      return res.status(401).json({error: "Error in finding receptionist"})
+                                    })
+                                 
                                   }
                                 }
                               );
@@ -328,12 +356,21 @@ router.post("/login", (req, res) => {
                       if (err) {
                         throw err;
                       } else {
-                        return res.json({
-                          success: true,
-                          token: token,
-                          user: person,
-                          patient_details: patient,
-                        });
+                        person.password = "";
+                        Patient.findById(patient.id)
+                        .populate("user")
+                        .then((patientRes) => {
+                          return res.json({
+                            success: true,
+                            token: token,
+                            user: person,
+                            patient_details: patientRes,
+                          });
+                        })
+                        .catch((error) => {
+                          console.log("Error in finding patient : "+error);
+                          return res.status(401).json({error: "Error in finding patient"})
+                        })
                       }
                     }
                   );
@@ -365,12 +402,22 @@ router.post("/login", (req, res) => {
                       if (err) {
                         throw err;
                       } else {
-                        return res.json({
-                          success: true,
-                          token: token,
-                          user: person,
-                          doctor_details: doctor,
-                        });
+                        Doctor.findById(doctor.id)
+                        .populate("user hospital_id")
+                        .then((doctorRes) => {
+                          return res.json({
+                            success: true,
+                            token: token,
+                            user: person,
+                            doctor_details: doctorRes,
+                          });
+                        })
+                        .catch((error) => {
+                          console.log("Error in finding doctor : "+error);
+                          return res.status(401).json({error: "Error in finding doctor"})
+                        })
+
+                      
                       }
                     }
                   );
@@ -404,12 +451,21 @@ router.post("/login", (req, res) => {
                       if (err) {
                         throw err;
                       } else {
-                        return res.json({
-                          success: true,
-                          token: token,
-                          user: person,
-                          receptionist_details: receptionist,
-                        });
+                        person.password = "";
+
+                        Receptionist.findById(reception.id)
+                        .populate("user")
+                        . then((receptionRes) => {
+                          return res.json({
+                            success: true,
+                            token: token,
+                            user: person,
+                            receptionist_details: receptionRes,
+                          });
+                        })  .catch((error) => {
+                          console.log("Error in finding receptionist : "+error);
+                          return res.status(401).json({error: "Error in finding receptionist"})
+                        })
                       }
                     }
                   );
