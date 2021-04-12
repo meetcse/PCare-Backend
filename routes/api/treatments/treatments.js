@@ -148,6 +148,18 @@ router.post(
         },
       })
       .populate({
+        path: "treatments",
+        populate: {
+          path: "patient_id",
+        },
+      })
+      .populate({
+        path: "treatments",
+        populate: {
+          path: "doctor_id",
+        },
+      })
+      .populate({
         path: "patient_id",
         populate: {
           path: "user",
