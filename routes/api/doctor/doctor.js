@@ -10,6 +10,7 @@ const Person = mongoose.model("myPerson");
 const Doctor = mongoose.model("myDoctor");
 const Patient = mongoose.model("myPatient");
 const FullTreatment = require("../../../models/treatment/FullTreatment");
+var asyncPack = require("async");
 
 //@type     Get
 //@route    /api/doctor/
@@ -319,38 +320,74 @@ router.get(
         let patients = [];
         var promise = new Promise((resolve, reject) => {
           if (doctor.treatment_id != null && doctor.treatment_id.length > 0) {
-            doctor.treatment_id.forEach((ids, index, array) => {
-              FullTreatment.findById(ids)
-                .then((fullTreatment) => {
-                  Patient.findById(fullTreatment.patient_id)
-                    .populate("user", "-password")
-                    .populate({
-                      path: "appointment_id",
-                      populate: {
-                        path: "appointment",
-                      },
-                    })
-                    .then((patient) => {
-                      if (patient != null) {
-                        patients.push(patient);
-                        if (index === array.length - 1) resolve();
-                      }
-                      if (index === array.length - 1) resolve();
-                    })
-                    .catch((error) => {
-                      console.log("Error in finding patient : " + error);
-                      return res
-                        .status(401)
-                        .json({ error: "Error in finding patient" });
-                    });
-                })
-                .catch((error) => {
-                  console.log("ERROR : " + error);
-                  return res
-                    .status(401)
-                    .json({ error: "Error in finding full treatment" });
-                });
-            });
+            asyncPack.eachSeries(doctor.treatment_id, (item, callback) => {
+              FullTreatment.findById(item)
+              .then((fullTreatment) => {
+                Patient.findById(fullTreatment.patient_id)
+                  .populate("user", "-password")
+                  .populate({
+                    path: "appointment_id",
+                    populate: {
+                      path: "appointment",
+                    },
+                  })
+                  .then((patient) => {
+                    // if (patient != null) {
+                      patients.push(patient);
+                      callback()
+                      // if (index === array.length - 1) resolve();
+                    // }
+                    // if (index === array.length - 1) resolve();
+                  })
+                  .catch((error) => {
+                    console.log("Error in finding patient : " + error);
+                    return res
+                      .status(401)
+                      .json({ error: "Error in finding patient" });
+                  });
+              })
+              .catch((error) => {
+                console.log("ERROR : " + error);
+                return res
+                  .status(401)
+                  .json({ error: "Error in finding full treatment" });
+              });
+            }, () => {
+              resolve()
+            })
+            
+            // doctor.treatment_id.forEach((ids, index, array) => {
+            //   FullTreatment.findById(ids)
+            //     .then((fullTreatment) => {
+            //       Patient.findById(fullTreatment.patient_id)
+            //         .populate("user", "-password")
+            //         .populate({
+            //           path: "appointment_id",
+            //           populate: {
+            //             path: "appointment",
+            //           },
+            //         })
+            //         .then((patient) => {
+            //           // if (patient != null) {
+            //             patients.push(patient);
+            //             // if (index === array.length - 1) resolve();
+            //           // }
+            //           if (index === array.length - 1) resolve();
+            //         })
+            //         .catch((error) => {
+            //           console.log("Error in finding patient : " + error);
+            //           return res
+            //             .status(401)
+            //             .json({ error: "Error in finding patient" });
+            //         });
+            //     })
+            //     .catch((error) => {
+            //       console.log("ERROR : " + error);
+            //       return res
+            //         .status(401)
+            //         .json({ error: "Error in finding full treatment" });
+            //     });
+            // });
           } else {
             return res.json({ error: "No Patients found" });
           }
@@ -358,7 +395,7 @@ router.get(
 
         promise.then(() => {
           if (patients.length == 0) {
-            return res.json({ error: "No Patients found" });
+            return res.json([]);
           }
           return res.json(patients);
         });
