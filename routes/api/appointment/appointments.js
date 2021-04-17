@@ -9,6 +9,7 @@ const Doctor = mongoose.model("myDoctor");
 const Receptionist = mongoose.model("myReceptionist");
 const Patient = mongoose.model("myPatient");
 const moment = require("moment");
+var asyncPack = require("async");
 
 //appointment model
 const Appointment = require("../../../models/appointment/Appointment");
@@ -122,7 +123,7 @@ router.get(
         var promise = new Promise((resolve, reject) => {
           patient.appointment_id.forEach((element, index, array) => {
             Appointment.findById(element.appointment)
-   
+
               .populate({
                 path: "patient_id",
                 populate: {
@@ -147,8 +148,7 @@ router.get(
               //     path: "receptionist_id",
               //   },
               // })
-             
-             
+
               .then((appointment) => {
                 appointments.push(appointment);
                 // console.log(appointments);
@@ -161,7 +161,7 @@ router.get(
           });
         });
         promise.then(() => {
-          appointments.sort((a,b)=>b.appointment_date-a.appointment_date);
+          appointments.sort((a, b) => b.appointment_date - a.appointment_date);
           return res.json(appointments);
         });
       })
@@ -186,7 +186,11 @@ router.get(
 
     const date = moment().format("YYYY-MM-DD");
 
-    Appointment.find({ doctor_id: req.user.doctor_id, appointment_date: date })
+    Appointment.find({
+      doctor_id: req.user.doctor_id,
+      status: { $regex: "accepted", $options: "i" },
+      appointment_date: date,
+    })
       .populate({
         path: "patient_id",
         populate: {
@@ -290,7 +294,7 @@ router.get(
 
 //@type     GET
 //@route    /api/appointment/incoming/recept/all
-//@desc     route for getting incoming appointment from receptionist  side
+//@desc     route for getting incoming appointment req from receptionist  side
 //@access   PRIVATE
 router.get(
   "/incoming/recept/all",
@@ -305,40 +309,47 @@ router.get(
         let appointments = [];
 
         var promise = new Promise((resolve, reject) => {
-          myReception.doctor_id.forEach((doctorIds, index, array) => {
-            console.log("DOCTOR ID : " + doctorIds);
-            Appointment.find({
-              doctor_id: doctorIds,
-              status: { $regex: "pending", $options: "i" },
-              // appointment_date: { $gt: date },
-            })
-              .populate({
-                path: "patient_id",
-                populate: {
-                  path: "user",
-                },
+          asyncPack.eachSeries(
+            myReception.doctor_id,
+            (doctorIds, callback) => {
+              console.log("DOCTOR ID : " + doctorIds);
+              Appointment.find({
+                doctor_id: doctorIds,
+                status: { $regex: "pending", $options: "i" },
+                appointment_date: { $gte: date },
               })
-              .populate({
-                path: "doctor_id",
-                populate: {
-                  path: "user",
-                },
-              })
-              .then((newAppointment) => {
-                if (newAppointment.length > 0) {
-                  appointments.push({ newAppointment });
-                }
-                if (index === array.length - 1) resolve();
-              })
-              .catch((error) => {
-                console.log(
-                  "Error in finding receptionist : " + error.toString()
-                );
-                return res
-                  .status(401)
-                  .json({ error: "Error in finding appointments" });
-              });
-          });
+                .sort("appointment_date")
+                .populate({
+                  path: "patient_id",
+                  populate: {
+                    path: "user",
+                  },
+                })
+                .populate({
+                  path: "doctor_id",
+                  populate: {
+                    path: "user",
+                  },
+                })
+                .then((newAppointment) => {
+                  if (newAppointment.length > 0) {
+                    appointments.push({ newAppointment });
+                  }
+                  callback();
+                })
+                .catch((error) => {
+                  console.log(
+                    "Error in finding receptionist : " + error.toString()
+                  );
+                  return res
+                    .status(401)
+                    .json({ error: "Error in finding appointments" });
+                });
+            },
+            () => {
+              resolve();
+            }
+          );
         });
 
         promise.then(() => {
@@ -356,9 +367,6 @@ router.get(
       });
   }
 );
-//TODO: UPCOMING APP
-//TODO: ADD/REJECT APP
-//TODO: TODAY"S APP
 
 //@type     GET
 //@route    /api/appointment/upcoming/recept
@@ -371,7 +379,150 @@ router.get(
     if (req.user.usertype.toString().toLowerCase() != "receptionist") {
       return res.status(401).json({ error: "Un Authorized" });
     }
-    //TODO:
+    Receptionist.findById(req.user.receptionist_id)
+      .then((receptionist) => {
+        const date = moment().format("YYYY-MM-DD");
+        let appointmentsForRes = [];
+        var promise = new Promise((resolve, reject) => {
+          if (
+            receptionist.doctor_id != null &&
+            receptionist.doctor_id.length > 0
+          ) {
+            asyncPack.eachSeries(
+              receptionist.doctor_id,
+              (docId, callback) => {
+                Appointment.find({
+                  doctor_id: docId,
+                  status: { $regex: "accepted", $options: "i" },
+                  appointment_date: { $gte: date },
+                })
+                  .populate({
+                    path: "patient_id",
+                    populate: {
+                      path: "user",
+                    },
+                  })
+                  .populate({
+                    path: "doctor_id",
+                    populate: {
+                      path: "user",
+                    },
+                  })
+                  .sort("appointment_date")
+                  .exec((error, appointments) => {
+                    if (error) {
+                      console.log("ERROR IN Finding appointment : " + error);
+
+                      return res
+                        .status(400)
+                        .json({ error: "Error in finding appointments" });
+                    }
+
+                    appointments.forEach((appSingle) => {
+                      let index = appointmentsForRes.findIndex((appDate) => {
+                        return (
+                          getDate(appDate.appointment_date) ===
+                          getDate(appSingle.appointment_date)
+                        );
+                      });
+                      if (index == -1) {
+                        appointmentsForRes.push({
+                          appointment_date: appSingle.appointment_date,
+                          appointments: [appSingle],
+                        });
+                      } else {
+                        appointmentsForRes[index].appointments.push(appSingle);
+                      }
+                    });
+                    callback();
+
+                    //  return res.json(appointments);
+                  });
+              },
+              () => {
+                resolve();
+              }
+            );
+          } else {
+            return res.json({ error: "No Appointments found" });
+          }
+        });
+
+        promise
+          .then(() => {
+            return res.json(appointmentsForRes);
+          })
+          .catch((error) => {
+            console.log("Error in getting appointments : " + error.toString());
+            return res
+              .status(400)
+              .json({ error: "Error in getting appointments" });
+          });
+      })
+      .catch((error) => {
+        console.log("Error in finding Receptionist : " + error.toString());
+        return res.status(400).json({ error: "Error in finding Receptionist" });
+      });
+  }
+);
+
+//@type     POST
+//@route    /api/appointment/recept/update
+//@desc     route for getting all upcoming accepted appointments for receptionist
+//@access   PRIVATE
+router.post(
+  "/recept/update",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    if (req.user.usertype.toString().toLowerCase() != "receptionist") {
+      return res.status(401).json({ error: "Un Authorized" });
+    }
+
+    if (!req.body.status || !req.body.single_appointment_id) {
+      return res.status(401).json({ error: "Missing fields" });
+    }
+
+    //STATUS = 0 => Rejected
+    //STATUS = 1 => Accepted
+
+    let status;
+    if (req.body.status == 1) {
+      status = "Accepted";
+    } else {
+      status = "Rejected";
+    }
+
+    Appointment.findById(req.body.single_appointment_id)
+      .then((appRess) => {
+        if (appRess.status.toLowerCase() != "pending") {
+          return res.status(404).json({ error: "Appointment already updated" });
+        }
+        Appointment.findByIdAndUpdate(
+          req.body.single_appointment_id,
+          {
+            $set: {
+              status: status,
+            },
+          },
+          { new: true }
+        )
+          .then((appointment) => {
+            return res.json({
+              success: "Appointment Status updated",
+              appointment: appointment,
+            });
+          })
+          .catch((error) => {
+            console.log("Error in updating appointment status : " + error);
+            return res
+              .status(400)
+              .json({ error: "Error in updating appointment" });
+          });
+      })
+      .catch((error) => {
+        console.log("Error in getting appointment status : " + error);
+        return res.status(400).json({ error: "Error in getting appointment" });
+      });
   }
 );
 

@@ -142,9 +142,9 @@ router.post(
           populate: {
             path: "patient_id doctor_id",
             populate: {
-              path: "user hospital_id"
-            }
-          }
+              path: "user hospital_id",
+            },
+          },
         },
       })
       .populate({
@@ -153,7 +153,7 @@ router.post(
           path: "single_treatment_id",
         },
       })
-  
+
       .populate({
         path: "patient_id",
         populate: {
@@ -248,22 +248,242 @@ router.post(
               error: "Sorry! Treatment already added to this appointment",
             });
           }
-          const full_treatment_id = appointment.full_treatment_id;
-          if (full_treatment_id) {
-            var newSingleTreatment = new SingleTreatment({
-              single_appointment_id: single_appointment_id,
-              prescription: prescription,
-              disease: disease,
-              special_note: special_note,
-              experiments: experiments,
-              observation: observation,
-            });
-            newSingleTreatment
-              .save()
-              .then((newSingleTreatmentResponse) => {
-                FullTreatment.findById(full_treatment_id)
-                  .then((newFullTreatmentResponse) => {
-                    newFullTreatmentResponse.treatments.push({
+          Appointment.findByIdAndUpdate(
+            single_appointment_id,
+            {
+              $set: {
+                status: "Completed",
+              },
+            },
+            { new: true }
+          )
+            .then((appointment) => {
+              const full_treatment_id = appointment.full_treatment_id;
+              if (full_treatment_id) {
+                var newSingleTreatment = new SingleTreatment({
+                  single_appointment_id: single_appointment_id,
+                  prescription: prescription,
+                  disease: disease,
+                  special_note: special_note,
+                  experiments: experiments,
+                  observation: observation,
+                });
+                newSingleTreatment
+                  .save()
+                  .then((newSingleTreatmentResponse) => {
+                    FullTreatment.findById(full_treatment_id)
+                      .then((newFullTreatmentResponse) => {
+                        newFullTreatmentResponse.treatments.push({
+                          appointment_date: appointment.appointment_date,
+                          single_appointment_id: appointment.id,
+                          single_treatment_id: newSingleTreatmentResponse.id,
+                        });
+                        var status_completed_time;
+                        var status;
+                        if (req.body.status) status = req.body.status;
+                        else status = "Completed";
+                        if (req.body.status_completed_time)
+                          status_completed_time = getDateUtc(
+                            req.body.status_completed_time
+                          );
+                        else status_completed_time = "";
+                        FullTreatment.findByIdAndUpdate(
+                          full_treatment_id,
+                          {
+                            $set: {
+                              treatments: newFullTreatmentResponse.treatments,
+                              status_completed_time: status_completed_time,
+                              status: status,
+                            },
+                          },
+                          { new: true }
+                        )
+                          .then((newFullTreatmentResponse) => {
+                            Doctor.findById(newFullTreatmentResponse.doctor_id)
+                              .then((doctor) => {
+                                doctor.treatment_id.push(
+                                  newFullTreatmentResponse.id
+                                );
+                                Doctor.findByIdAndUpdate(
+                                  newFullTreatmentResponse.doctor_id,
+                                  {
+                                    treatment_id: doctor.treatment_id,
+                                  },
+                                  { new: true }
+                                )
+                                  .then((newDoctor) => {
+                                    if (
+                                      status.toString().toLowerCase() ==
+                                      "completed"
+                                    ) {
+                                      Patient.findById(
+                                        newFullTreatmentResponse.patient_id
+                                      )
+                                        .then((newPatient) => {
+                                          const index = newPatient.ongoing_treatment_id.indexOf(
+                                            newFullTreatmentResponse.id
+                                          );
+                                          if (index > -1) {
+                                            newPatient.ongoing_treatment_id.splice(
+                                              index,
+                                              1
+                                            );
+                                          }
+                                          newPatient.completed_treatment_id.push(
+                                            newFullTreatmentResponse.id
+                                          );
+                                          Patient.findByIdAndUpdate(
+                                            newFullTreatmentResponse.patient_id,
+                                            {
+                                              $set: {
+                                                ongoing_treatment_id:
+                                                  newPatient.ongoing_treatment_id,
+                                                completed_treatment_id:
+                                                  newPatient.completed_treatment_id,
+                                              },
+                                            },
+                                            { new: true }
+                                          )
+                                            .then((newPatientUpdate) => {
+                                              return res.json({
+                                                success:
+                                                  "Treatment saved successfully",
+                                              });
+                                            })
+                                            .catch((error) => {
+                                              console.log(
+                                                "Error in updating patient : " +
+                                                  error.toString()
+                                              );
+                                              return res.status(401).json({
+                                                error:
+                                                  "Error in updating patient",
+                                              });
+                                            });
+                                        })
+                                        .catch((error) => {
+                                          console.log(
+                                            "Error in finding patient : " +
+                                              error.toString()
+                                          );
+                                          return res.status(401).json({
+                                            error: "Error in updating patient",
+                                          });
+                                        });
+                                    } else if (
+                                      status.toString().toLowerCase() ==
+                                      "ongoing"
+                                    ) {
+                                      Patient.findById(
+                                        newFullTreatmentResponse.patient_id
+                                      )
+                                        .then((newPatient) => {
+                                          newPatient.ongoing_treatment_id.push(
+                                            newFullTreatmentResponse.id
+                                          );
+                                          Patient.findByIdAndUpdate(
+                                            newFullTreatmentResponse.patient_id,
+                                            {
+                                              $set: {
+                                                ongoing_treatment_id:
+                                                  newPatient.ongoing_treatment_id,
+                                              },
+                                            },
+                                            { new: true }
+                                          )
+                                            .then((newPatientUpdate) => {
+                                              return res.json({
+                                                success:
+                                                  "Treatment saved successfully",
+                                              });
+                                            })
+                                            .catch((error) => {
+                                              console.log(
+                                                "Error in updating patient : " +
+                                                  error.toString()
+                                              );
+                                              return res.status(401).json({
+                                                error:
+                                                  "Error in updating patient",
+                                              });
+                                            });
+                                        })
+                                        .catch((error) => {
+                                          console.log(
+                                            "Error in finding patient : " +
+                                              error.toString()
+                                          );
+                                          return res.status(401).json({
+                                            error: "Error in updating patient",
+                                          });
+                                        });
+                                    }
+                                  })
+                                  .catch((error) => {
+                                    console.log(
+                                      "Error in updating doctor" +
+                                        error.toString()
+                                    );
+                                    return res
+                                      .status(401)
+                                      .json({
+                                        error: "Error in updating doctor",
+                                      });
+                                  });
+                              })
+                              .catch((error) => {
+                                console.log(
+                                  "Error in finding doctor : " +
+                                    error.toString()
+                                );
+                                return res
+                                  .status(401)
+                                  .json({ error: "Error in finding doctor" });
+                              });
+                          })
+                          .catch((error) => {
+                            console.log(
+                              "ERROR IN UPDATING FULL TREATMENT : " +
+                                error.toString()
+                            );
+                            return res
+                              .status(401)
+                              .json({ error: "Error in saving treatment" });
+                          });
+                      })
+                      .catch((error) => {
+                        console.log(
+                          "Error in fetching full treatment : " +
+                            error.toString()
+                        );
+                        return res
+                          .status(401)
+                          .json({ error: "Error in fetching full treatment" });
+                      });
+                  })
+                  .catch((error) => {
+                    console.log(
+                      "Error in saving single treatment : " + error.toString()
+                    );
+                    return res
+                      .status(401)
+                      .json({ error: "Error in saving treatment in database" });
+                  });
+              } else {
+                var newSingleTreatment = new SingleTreatment({
+                  single_appointment_id: single_appointment_id,
+                  prescription: prescription,
+                  disease: disease,
+                  special_note: special_note,
+                  experiments: experiments,
+                  observation: observation,
+                });
+
+                newSingleTreatment
+                  .save()
+                  .then((newSingleTreatmentResponse) => {
+                    var treatments = [];
+                    treatments.push({
                       appointment_date: appointment.appointment_date,
                       single_appointment_id: appointment.id,
                       single_treatment_id: newSingleTreatmentResponse.id,
@@ -271,390 +491,206 @@ router.post(
                     var status_completed_time;
                     var status;
                     if (req.body.status) status = req.body.status;
-                    else status = "ONGOING";
+                    else status = "Completed";
                     if (req.body.status_completed_time)
                       status_completed_time = getDateUtc(
                         req.body.status_completed_time
                       );
                     else status_completed_time = "";
-                    FullTreatment.findByIdAndUpdate(
-                      full_treatment_id,
-                      {
-                        $set: {
-                          treatments: newFullTreatmentResponse.treatments,
-                          status_completed_time: status_completed_time,
-                          status: status,
-                        },
-                      },
-                      { new: true }
-                    )
+                    var newFullTreatment = new FullTreatment({
+                      patient_id: appointment.patient_id,
+                      doctor_id: appointment.doctor_id,
+                      treatments: treatments,
+                      status: status,
+                      status_completed_time: status_completed_time,
+                    });
+
+                    newFullTreatment
+                      .save()
                       .then((newFullTreatmentResponse) => {
-                        Doctor.findById(newFullTreatmentResponse.doctor_id)
-                          .then((doctor) => {
-                            doctor.treatment_id.push(
-                              newFullTreatmentResponse.id
-                            );
-                            Doctor.findByIdAndUpdate(
-                              newFullTreatmentResponse.doctor_id,
-                              {
-                                treatment_id: doctor.treatment_id,
-                              },
-                              { new: true }
-                            )
-                              .then((newDoctor) => {
-                                if (
-                                  status.toString().toLowerCase() == "completed"
-                                ) {
-                                  Patient.findById(
-                                    newFullTreatmentResponse.patient_id
-                                  )
-                                    .then((newPatient) => {
-                                      const index = newPatient.ongoing_treatment_id.indexOf(
-                                        newFullTreatmentResponse.id
-                                      );
-                                      if (index > -1) {
-                                        newPatient.ongoing_treatment_id.splice(
-                                          index,
-                                          1
-                                        );
-                                      }
-                                      newPatient.completed_treatment_id.push(
-                                        newFullTreatmentResponse.id
-                                      );
-                                      Patient.findByIdAndUpdate(
-                                        newFullTreatmentResponse.patient_id,
-                                        {
-                                          $set: {
-                                            ongoing_treatment_id:
-                                              newPatient.ongoing_treatment_id,
-                                            completed_treatment_id:
-                                              newPatient.completed_treatment_id,
-                                          },
-                                        },
-                                        { new: true }
-                                      )
-                                        .then((newPatientUpdate) => {
-                                          return res.json({
-                                            success:
-                                              "Treatment saved successfully",
-                                          });
-                                        })
-                                        .catch((error) => {
-                                          console.log(
-                                            "Error in updating patient : " +
-                                              error.toString()
-                                          );
-                                          return res.status(401).json({
-                                            error: "Error in updating patient",
-                                          });
-                                        });
-                                    })
-                                    .catch((error) => {
-                                      console.log(
-                                        "Error in finding patient : " +
-                                          error.toString()
-                                      );
-                                      return res.status(401).json({
-                                        error: "Error in updating patient",
-                                      });
-                                    });
-                                } else if (
-                                  status.toString().toLowerCase() == "ongoing"
-                                ) {
-                                  Patient.findById(
-                                    newFullTreatmentResponse.patient_id
-                                  )
-                                    .then((newPatient) => {
-                                      newPatient.ongoing_treatment_id.push(
-                                        newFullTreatmentResponse.id
-                                      );
-                                      Patient.findByIdAndUpdate(
-                                        newFullTreatmentResponse.patient_id,
-                                        {
-                                          $set: {
-                                            ongoing_treatment_id:
-                                              newPatient.ongoing_treatment_id,
-                                          },
-                                        },
-                                        { new: true }
-                                      )
-                                        .then((newPatientUpdate) => {
-                                          return res.json({
-                                            success:
-                                              "Treatment saved successfully",
-                                          });
-                                        })
-                                        .catch((error) => {
-                                          console.log(
-                                            "Error in updating patient : " +
-                                              error.toString()
-                                          );
-                                          return res.status(401).json({
-                                            error: "Error in updating patient",
-                                          });
-                                        });
-                                    })
-                                    .catch((error) => {
-                                      console.log(
-                                        "Error in finding patient : " +
-                                          error.toString()
-                                      );
-                                      return res.status(401).json({
-                                        error: "Error in updating patient",
-                                      });
-                                    });
-                                }
-                              })
-                              .catch((error) => {
-                                console.log(
-                                  "Error in updating doctor" + error.toString()
+                        Appointment.findByIdAndUpdate(
+                          single_appointment_id,
+                          {
+                            $set: {
+                              full_treatment_id: newFullTreatmentResponse.id,
+                              single_treatment_id:
+                                newSingleTreatmentResponse.id,
+                            },
+                          },
+                          { new: true }
+                        )
+                          .then((newUpdatedAppointment) => {
+                            Doctor.findById(newFullTreatmentResponse.doctor_id)
+                              .then((doctor) => {
+                                doctor.treatment_id.push(
+                                  newFullTreatmentResponse.id
                                 );
-                                return res
-                                  .status(401)
-                                  .json({ error: "Error in updating doctor" });
-                              });
-                          })
-                          .catch((error) => {
-                            console.log(
-                              "Error in finding doctor : " + error.toString()
-                            );
-                            return res
-                              .status(401)
-                              .json({ error: "Error in finding doctor" });
-                          });
-                      })
-                      .catch((error) => {
-                        console.log(
-                          "ERROR IN UPDATING FULL TREATMENT : " +
-                            error.toString()
-                        );
-                        return res
-                          .status(401)
-                          .json({ error: "Error in saving treatment" });
-                      });
-                  })
-                  .catch((error) => {
-                    console.log(
-                      "Error in fetching full treatment : " + error.toString()
-                    );
-                    return res
-                      .status(401)
-                      .json({ error: "Error in fetching full treatment" });
-                  });
-              })
-              .catch((error) => {
-                console.log(
-                  "Error in saving single treatment : " + error.toString()
-                );
-                return res
-                  .status(401)
-                  .json({ error: "Error in saving treatment in database" });
-              });
-          } else {
-            var newSingleTreatment = new SingleTreatment({
-              single_appointment_id: single_appointment_id,
-              prescription: prescription,
-              disease: disease,
-              special_note: special_note,
-              experiments: experiments,
-              observation: observation,
-            });
-
-            newSingleTreatment
-              .save()
-              .then((newSingleTreatmentResponse) => {
-                var treatments = [];
-                treatments.push({
-                  appointment_date: appointment.appointment_date,
-                  single_appointment_id: appointment.id,
-                  single_treatment_id: newSingleTreatmentResponse.id,
-                });
-                var status_completed_time;
-                var status;
-                if (req.body.status) status = req.body.status;
-                else status = "ONGOING";
-                if (req.body.status_completed_time)
-                  status_completed_time = getDateUtc(
-                    req.body.status_completed_time
-                  );
-                else status_completed_time = "";
-                var newFullTreatment = new FullTreatment({
-                  patient_id: appointment.patient_id,
-                  doctor_id: appointment.doctor_id,
-                  treatments: treatments,
-                  status: status,
-                  status_completed_time: status_completed_time,
-                });
-
-                newFullTreatment
-                  .save()
-                  .then((newFullTreatmentResponse) => {
-                    Appointment.findByIdAndUpdate(
-                      single_appointment_id,
-                      {
-                        $set: {
-                          full_treatment_id: newFullTreatmentResponse.id,
-                          single_treatment_id: newSingleTreatmentResponse.id,
-                        },
-                      },
-                      { new: true }
-                    )
-                      .then((newUpdatedAppointment) => {
-                        Doctor.findById(newFullTreatmentResponse.doctor_id)
-                          .then((doctor) => {
-                            doctor.treatment_id.push(
-                              newFullTreatmentResponse.id
-                            );
-                            Doctor.findByIdAndUpdate(
-                              newFullTreatmentResponse.doctor_id,
-                              {
-                                treatment_id: doctor.treatment_id,
-                              },
-                              { new: true }
-                            )
-                              .then((newDoctor) => {
-                                if (
-                                  status.toString().toLowerCase() == "completed"
-                                ) {
-                                  Patient.findById(
-                                    newFullTreatmentResponse.patient_id
-                                  )
-                                    .then((newPatient) => {
-                                      const index = newPatient.ongoing_treatment_id.indexOf(
-                                        newFullTreatmentResponse.id
-                                      );
-                                      if (index > -1) {
-                                        newPatient.ongoing_treatment_id.splice(
-                                          index,
-                                          1
-                                        );
-                                      }
-                                      newPatient.completed_treatment_id.push(
-                                        newFullTreatmentResponse.id
-                                      );
-                                      Patient.findByIdAndUpdate(
-                                        newFullTreatmentResponse.patient_id,
-                                        {
-                                          $set: {
-                                            ongoing_treatment_id:
-                                              newPatient.ongoing_treatment_id,
-                                            completed_treatment_id:
-                                              newPatient.completed_treatment_id,
-                                          },
-                                        },
-                                        { new: true }
+                                Doctor.findByIdAndUpdate(
+                                  newFullTreatmentResponse.doctor_id,
+                                  {
+                                    treatment_id: doctor.treatment_id,
+                                  },
+                                  { new: true }
+                                )
+                                  .then((newDoctor) => {
+                                    if (
+                                      status.toString().toLowerCase() ==
+                                      "completed"
+                                    ) {
+                                      Patient.findById(
+                                        newFullTreatmentResponse.patient_id
                                       )
-                                        .then((newPatientUpdate) => {
-                                          return res.json({
-                                            success:
-                                              "Treatment saved successfully",
-                                          });
+                                        .then((newPatient) => {
+                                          const index = newPatient.ongoing_treatment_id.indexOf(
+                                            newFullTreatmentResponse.id
+                                          );
+                                          if (index > -1) {
+                                            newPatient.ongoing_treatment_id.splice(
+                                              index,
+                                              1
+                                            );
+                                          }
+                                          newPatient.completed_treatment_id.push(
+                                            newFullTreatmentResponse.id
+                                          );
+                                          Patient.findByIdAndUpdate(
+                                            newFullTreatmentResponse.patient_id,
+                                            {
+                                              $set: {
+                                                ongoing_treatment_id:
+                                                  newPatient.ongoing_treatment_id,
+                                                completed_treatment_id:
+                                                  newPatient.completed_treatment_id,
+                                              },
+                                            },
+                                            { new: true }
+                                          )
+                                            .then((newPatientUpdate) => {
+                                              return res.json({
+                                                success:
+                                                  "Treatment saved successfully",
+                                              });
+                                            })
+                                            .catch((error) => {
+                                              console.log(
+                                                "Error in updating patient : " +
+                                                  error.toString()
+                                              );
+                                              return res.status(401).json({
+                                                error:
+                                                  "Error in updating patient",
+                                              });
+                                            });
                                         })
                                         .catch((error) => {
                                           console.log(
-                                            "Error in updating patient : " +
+                                            "Error in finding patient : " +
                                               error.toString()
                                           );
                                           return res.status(401).json({
                                             error: "Error in updating patient",
                                           });
                                         });
-                                    })
-                                    .catch((error) => {
-                                      console.log(
-                                        "Error in finding patient : " +
-                                          error.toString()
-                                      );
-                                      return res.status(401).json({
-                                        error: "Error in updating patient",
-                                      });
-                                    });
-                                } else if (
-                                  status.toString().toLowerCase() == "ongoing"
-                                ) {
-                                  Patient.findById(
-                                    newFullTreatmentResponse.patient_id
-                                  )
-                                    .then((newPatient) => {
-                                      newPatient.ongoing_treatment_id.push(
-                                        newFullTreatmentResponse.id
-                                      );
-                                      Patient.findByIdAndUpdate(
-                                        newFullTreatmentResponse.patient_id,
-                                        {
-                                          $set: {
-                                            ongoing_treatment_id:
-                                              newPatient.ongoing_treatment_id,
-                                          },
-                                        },
-                                        { new: true }
+                                    } else if (
+                                      status.toString().toLowerCase() ==
+                                      "ongoing"
+                                    ) {
+                                      Patient.findById(
+                                        newFullTreatmentResponse.patient_id
                                       )
-                                        .then((newPatientUpdate) => {
-                                          return res.json({
-                                            success:
-                                              "Treatment saved successfully",
-                                          });
+                                        .then((newPatient) => {
+                                          newPatient.ongoing_treatment_id.push(
+                                            newFullTreatmentResponse.id
+                                          );
+                                          Patient.findByIdAndUpdate(
+                                            newFullTreatmentResponse.patient_id,
+                                            {
+                                              $set: {
+                                                ongoing_treatment_id:
+                                                  newPatient.ongoing_treatment_id,
+                                              },
+                                            },
+                                            { new: true }
+                                          )
+                                            .then((newPatientUpdate) => {
+                                              return res.json({
+                                                success:
+                                                  "Treatment saved successfully",
+                                              });
+                                            })
+                                            .catch((error) => {
+                                              console.log(
+                                                "Error in updating patient : " +
+                                                  error.toString()
+                                              );
+                                              return res.status(401).json({
+                                                error:
+                                                  "Error in updating patient",
+                                              });
+                                            });
                                         })
                                         .catch((error) => {
                                           console.log(
-                                            "Error in updating patient : " +
+                                            "Error in finding patient : " +
                                               error.toString()
                                           );
                                           return res.status(401).json({
                                             error: "Error in updating patient",
                                           });
                                         });
-                                    })
-                                    .catch((error) => {
-                                      console.log(
-                                        "Error in finding patient : " +
-                                          error.toString()
-                                      );
-                                      return res.status(401).json({
-                                        error: "Error in updating patient",
+                                    }
+                                  })
+                                  .catch((error) => {
+                                    return res
+                                      .status(401)
+                                      .json({
+                                        error: "Error in finding doctor",
                                       });
-                                    });
-                                }
+                                  });
                               })
                               .catch((error) => {
                                 return res
                                   .status(401)
                                   .json({ error: "Error in finding doctor" });
                               });
+
+                            // return res.json({
+                            //   success: "Treatment saved successfully",
+                            // });
                           })
                           .catch((error) => {
+                            console.log(
+                              "ERROR in updating appointment : " +
+                                error.toString()
+                            );
                             return res
                               .status(401)
-                              .json({ error: "Error in finding doctor" });
+                              .json({ error: "Error in updating appointment" });
                           });
-
-                        // return res.json({
-                        //   success: "Treatment saved successfully",
-                        // });
                       })
                       .catch((error) => {
-                        console.log(
-                          "ERROR in updating appointment : " + error.toString()
-                        );
+                        console.log("ERROR : " + error.toString());
                         return res
                           .status(401)
-                          .json({ error: "Error in updating appointment" });
+                          .json({ error: "Error in saving Treatment" });
                       });
                   })
                   .catch((error) => {
-                    console.log("ERROR : " + error.toString());
+                    console.log("error : " + error.toString());
                     return res
                       .status(401)
                       .json({ error: "Error in saving Treatment" });
                   });
-              })
-              .catch((error) => {
-                console.log("error : " + error.toString());
-                return res
-                  .status(401)
-                  .json({ error: "Error in saving Treatment" });
-              });
-          }
+              }
+            })
+            .catch((error) => {
+              console.log(
+                "Error in updating appointment : " + error.toString()
+              );
+              return res
+                .status(400)
+                .json({ error: "Error in updating appointment" });
+            });
         })
         .catch((error) => {
           console.log("ERROR : " + error.toString());
