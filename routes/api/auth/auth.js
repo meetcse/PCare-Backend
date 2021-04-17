@@ -67,7 +67,7 @@ router.post("/register", (req, res) => {
             "https://cdn0.iconfinder.com/data/icons/avatar-78/128/12-512.png";
         } else {
           newPerson.profilepic =
-            "https://icons-for-free.com/iconfiles/png/512/female+person+user+woman+young+icon-1320196266256009072.png";
+            "https://st3.depositphotos.com/2703645/15661/v/450/depositphotos_156612348-stock-illustration-female-user-avatar-icon.jpg";
         }
 
         //Encrypt password using bcryptjs
