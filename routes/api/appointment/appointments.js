@@ -329,6 +329,14 @@ router.get(
                   path: "doctor_id",
                   populate: {
                     path: "user",
+                    
+                  },
+                })
+                .populate({
+                  path: "doctor_id",
+                  populate: {
+                    path: "hospital_id",
+
                   },
                 })
                 .then((newAppointment) => {
