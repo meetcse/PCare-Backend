@@ -8,7 +8,7 @@ const key = require("../../../server/myurl");
 const Doctor = mongoose.model("myDoctor");
 const Receptionist = mongoose.model("myReceptionist");
 const Patient = mongoose.model("myPatient");
-const moment = require("moment");
+const moment = require("moment-timezone");
 var asyncPack = require("async");
 
 //appointment model
