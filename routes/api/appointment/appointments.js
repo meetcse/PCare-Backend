@@ -184,7 +184,7 @@ router.get(
       return res.status(401).json({ error: "Un Authorized" });
     }
 
-    const date = moment().format("YYYY-MM-DD").toLocaleString(undefined, {timeZone: 'Asia/Kolkata'});
+    const date = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
 
     Appointment.find({
       doctor_id: req.user.doctor_id,
@@ -227,7 +227,7 @@ router.get(
       return res.status(401).json({ error: "Un Authorized" });
     }
 
-    const date = moment().format("YYYY-MM-DD").toLocaleString(undefined, {timeZone: 'Asia/Kolkata'});
+    const date = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
 
     Appointment.find({
       doctor_id: req.user.doctor_id,
@@ -303,7 +303,7 @@ router.get(
     if (req.user.usertype.toString().toLowerCase() != "receptionist") {
       return res.status(401).json({ error: "Un Authorized" });
     }
-    const date = moment().format("YYYY-MM-DD").toLocaleString(undefined, {timeZone: 'Asia/Kolkata'});
+    const date = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
     Receptionist.findById(req.user.receptionist_id)
       .then((myReception) => {
         let appointments = [];
@@ -329,14 +329,12 @@ router.get(
                   path: "doctor_id",
                   populate: {
                     path: "user",
-                    
                   },
                 })
                 .populate({
                   path: "doctor_id",
                   populate: {
                     path: "hospital_id",
-
                   },
                 })
                 .then((newAppointment) => {
@@ -389,7 +387,7 @@ router.get(
     }
     Receptionist.findById(req.user.receptionist_id)
       .then((receptionist) => {
-        const date = moment().format("YYYY-MM-DD").toLocaleString(undefined, {timeZone: 'Asia/Kolkata'});
+        const date = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
         let appointmentsForRes = [];
         var promise = new Promise((resolve, reject) => {
           if (
